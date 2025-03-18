@@ -1,6 +1,9 @@
 email_address,name,rank,course_id
-toddperez@example.com,Linda White,Associate Professor,DATA200
-garrettbrittany@example.com,David Smith,Assistant Professor,CSCI101
-johndavis@example.org,James Bond,Associate Professor,MATH301
-wheelerdavid@example.com,David Smith,Professor,ENGR202
-qmorris@example.net,Micheal John,Senior Professor,BIO150
+barbaraclark@example.org,James Bond,Professor,DATA200
+madeline36@example.com,David Smith,Associate Professor,DATA201
+sandra89@example.org,Micheal John,Senior Professor,DATA202
+jefferygriffin@example.com,Linda White,Assistant Professor,CSCI101
+jasminejohnson@example.com,James Bond,Senior Professor,MATH301
+emontgomery@example.net,Linda White,Professor,ENGR202
+dkennedy@example.com,David Smith,Associate Professor,BIO150
+prof@gmail.com,John,Professor,DATA203

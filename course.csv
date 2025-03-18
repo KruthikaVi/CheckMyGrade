@@ -1,2 +1,8 @@
 course_id,course_name,description
-DATA200, Python, Python description
+DATA200,Python,Python basics
+DATA201,DataBase,Database management system
+DATA202,Data Science,Provides insight about DS and Python
+CSCI101,Computer Science,Introduction to computer systems
+MATH301,Mathematics,Calculus and Linear Algebra
+ENGR202,Engineering,Mechanical engineering principles
+BIO150,Biology,Understanding living organisms

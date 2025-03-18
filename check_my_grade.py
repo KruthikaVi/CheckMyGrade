@@ -39,24 +39,30 @@ class LoginUser:
             print(f"Error reading the user info {str(e)}")
 
     def create_user(self, email_address, password, role):
-        for user in self.users:
-            if user[0] == email_address:
-                return f"This user {email_address} is already registered, try different email!"
-        password = self.cipher.encrypt(password)
-        if role not in ["student", "professor"]:
-            return "Only students or professors are allowed to register"
-        new_user = [email_address, password, role]
-        self.users.append(new_user)
-        self.save_login_data()
-        return "Successfully registered user, login to the application"
+        try:
+            for user in self.users:
+                if user[0] == email_address:
+                    return f"This user {email_address} is already registered, try different email!"
+            password = self.cipher.encrypt(password)
+            if role not in ["student", "professor"]:
+                return "Only students or professors are allowed to register"
+            new_user = [email_address, password, role]
+            self.users.append(new_user)
+            self.save_login_data()
+            return "Successfully registered user, login to the application"
+        except Exception as e:
+            print(f"Error creating the user {str(e)}")
 
     def login(self, email_address, password):
-        for user in self.users:
-            if user[0] == email_address and self.cipher.decrypt(user[1]) == password:
-                print(f"Login Successful!! Role: {user[2]}")
-                return True, user[2]
-        print("Invalid login attempt")
-        return False, None
+        try:
+            for user in self.users:
+                if user[0] == email_address and self.cipher.decrypt(user[1]) == password:
+                    print(f"Login Successful!! Role: {user[2]}")
+                    return True, user[2]
+            print("Invalid login attempt")
+            return False, None
+        except Exception as e:
+            print(f"Error while logging in {str(e)}")
 
     def logout(self):
         """Logout of the system"""
@@ -64,22 +70,28 @@ class LoginUser:
 
     def delete_record(self, email_address):
         """Deletes user details"""
-        self.users = [user for user in self.users if user[0] != email_address]
-        self.save_login_data()
-        self.load_login_data()
-        return "User removed successfully!"
+        try:
+            self.users = [user for user in self.users if user[0] != email_address]
+            self.save_login_data()
+            self.load_login_data()
+            return "User removed successfully!"
+        except Exception as e:
+            print(f"Error deleting the user record {str(e)}")
 
     def change_password(self, email_address, old_password):
-        for i, user in enumerate(self.users):
-            if (
-                user[0] == email_address
-                and self.cipher.decrypt(user[1]) == old_password
-            ):
-                new_password = getpass.getpass("Enter new password: ")
-                self.users[i][1] = self.cipher.encrypt(new_password)
-                self.save_login_data()
-                return "Password changed successfully!!!"
-        return "Incorrect email or password"
+        try:
+            for i, user in enumerate(self.users):
+                if (
+                    user[0] == email_address
+                    and self.cipher.decrypt(user[1]) == old_password
+                ):
+                    new_password = getpass.getpass("Enter new password: ")
+                    self.users[i][1] = self.cipher.encrypt(new_password)
+                    self.save_login_data()
+                    return "Password changed successfully!!!"
+            return "Incorrect email or password"
+        except Exception as e:
+            print(f"Error changing the user password {str(e)}")
 
 
 ##    ====================== Student Class =======================
@@ -143,12 +155,12 @@ class Student:
             if not course_exists:
                 return f"Could not find the course {course_id} in the database, register new course."
             marks = int(marks) if marks else marks
-            student_info.append(marks)
             if marks:
                 grade = self.grades_manager.add_grade(marks)
             else:
                 grade = None
             student_info.append(grade)
+            student_info.append(marks)
             self.students.append(student_info)
             self.save_data()
             self.load_student_data()
@@ -173,13 +185,13 @@ class Student:
         except Exception as e:
             print(f"Error deleting student {str(e)}")
 
-    def check_my_grades(self, email_address):
+    def check_my_grades(self, email_address, course_id=None):
         """Check the grades of a student"""
         try:
             start_process = time()
             record = [
-                student for student in self.students if student[0] == email_address
-            ]
+                student for student in self.students
+                if student[0] == email_address and (course_id is None or student[3] == course_id)]
             if record:
                 record = sorted(record, key=lambda rec: rec[5], reverse=True)
                 end_process = time()
@@ -198,8 +210,8 @@ class Student:
             start_process = time()
             for student in self.students:
                 if student[0] == email_address and student[3] == course_id:
-                    student[4] = int(new_marks)
-                    student[5] = self.grades_manager.add_grade(int(new_marks))
+                    student[4] = self.grades_manager.add_grade(int(new_marks))
+                    student[5] = int(new_marks)
                     self.save_data()
                     self.load_student_data()
                     end_process = time()
@@ -211,18 +223,18 @@ class Student:
         except Exception as e:
             print(f"Error updating the student record {str(e)}")
 
-    def check_my_marks(self, email_address):
+    def check_my_marks(self, email_address, course_id=None):
         """Check the marks of a student"""
         try:
             start_process = time()
             record = [
-                student for student in self.students if student[0] == email_address
-            ]
+                student for student in self.students
+                if student[0] == email_address and (course_id is None or student[3] == course_id)]
             if record:
                 record = sorted(record, key=lambda rec: rec[4], reverse=True)
                 end_process = time()
                 print(
-                    f"Time taken to check marks of new student is {end_process - start_process} Seconds"
+                    f"Time taken to check marks of student is {end_process - start_process} Seconds"
                 )
                 return record
             else:
@@ -232,22 +244,25 @@ class Student:
 
     def display_record(self, email_address=None):
         """Display  record of all/selected students"""
-        start_process = time()
-        if email_address:
-            students = [
-                student for student in self.students if student[0] == email_address
-            ]
-        else:
-            students = self.students
-        if students:
-            reports = sorted(students, key=lambda student: student[5], reverse=True)
-            end_process = time()
-            print(
-                f"Time taken to display student records is {end_process - start_process} Seconds"
-            )
-            return reports
-        else:
-            "No student record to display"
+        try:
+            start_process = time()
+            if email_address:
+                students = [
+                    student for student in self.students if student[0] == email_address
+                ]
+            else:
+                students = self.students
+            if students:
+                reports = sorted(students, key=lambda student: student[5], reverse=True)
+                end_process = time()
+                print(
+                    f"Time taken to display student records is {end_process - start_process} Seconds"
+                )
+                return reports
+            else:
+                "No student record to display"
+        except Exception as e:
+            print(f"Error displaying the user record {str(e)}")
 
     def save_data(self):
         try:
@@ -327,22 +342,33 @@ class Grades:
             print(f"Error reading the professor info {str(e)}")
 
     def modify_grade(self, email_address,course_id,marks):
-        student_manager = Student()
-        student_manager.update_student_record(email_address,course_id,marks)
+        try:
+            student_manager = Student()
+            return student_manager.update_student_record(email_address,course_id,marks)
+        except Exception as e:
+            print(f"Error modifying user grade{str(e)}")
 
     def display_grade_report(self, email_address=None):
         """Display Grade report of all/selected students"""
-        student_manager = Student()
-        if email_address:
-            students = [
-                student
-                for student in student_manager.students
-                if student[0] == email_address
-            ]
-        else:
-            students = student_manager.students
-        reports = sorted(students, key=lambda student: student[5], reverse=False)
-        return reports
+        try:
+            start_process = time()
+            student_manager = Student()
+            if email_address:
+                students = [
+                    student
+                    for student in student_manager.students
+                    if student[0] == email_address
+                ]
+            else:
+                students = student_manager.students
+            reports = sorted(students, key=lambda student: student[5], reverse=False)
+            end_process = time()
+            print(
+                f"Time taken to display grade report is {end_process - start_process} Seconds"
+            )
+            return reports
+        except Exception as e:
+            print(f"Error displaying the user report {str(e)}")
 
 
 ##    ====================== Professor Class =======================
@@ -382,26 +408,29 @@ class Professor:
 
     def professor_details(self, email_address=None):
         """Display  record of all/selected Professors"""
-        start_process = time()
-        if email_address:
-            professors = [
-                professor
-                for professor in self.professors
-                if professor[0] == email_address
-            ]
-        else:
-            professors = self.professors
-        if professors:
-            reports = sorted(
-                professors, key=lambda professor: professor[3], reverse=False
-            )
-            end_process = time()
-            print(
-                f"Time taken to display professor is {end_process - start_process} Seconds"
-            )
-            return reports
-        else:
-            "No Professor record to display"
+        try:
+            start_process = time()
+            if email_address:
+                professors = [
+                    professor
+                    for professor in self.professors
+                    if professor[0] == email_address
+                ]
+            else:
+                professors = self.professors
+            if professors:
+                reports = sorted(
+                    professors, key=lambda professor: professor[3], reverse=False
+                )
+                end_process = time()
+                print(
+                    f"Time taken to display professor is {end_process - start_process} Seconds"
+                )
+                return reports
+            else:
+                "No Professor record to display"
+        except Exception as e:
+            print(f"Error fetching professor details {str(e)}")
 
     def add_new_professor(self, email_address, name, rank, course_id):
         try:
@@ -445,6 +474,7 @@ class Professor:
                 prof for prof in self.professors if prof[0] != email_address
             ]
             self.save_prof_data()
+            return f"Professor {email_address} deleted successfully!"
         except Exception as e:
             print(f"Error deleting professor {str(e)}")
 
@@ -461,7 +491,7 @@ class Professor:
                     if new_course:
                         prof[3] = new_course
                     self.save_prof_data()
-                    print("professor details are updated")
+                    return "professor details are updated"
             return "Professor not found"
         except Exception as e:
             print(f"Error modifying professor {str(e)}")
@@ -470,21 +500,27 @@ class Professor:
         """Display  record of all/selected Professors"""
         try:
             start_process = time()
-            professors = [
-                professor
-                for professor in self.professors
-                if professor[0] == email_address
-            ]
-            reports = sorted(
-                professors, key=lambda professor: professor[3], reverse=False
-            )
-            end_process = time()
-            print(
-                f"Time taken to display professor course details is {end_process - start_process} Seconds"
-            )
-            return reports
+            if email_address:
+                professors = [
+                    professor
+                    for professor in self.professors
+                    if professor[0] == email_address
+                ]
+            else:
+                professors = self.professors
+            if professors:
+                reports = sorted(
+                    professors, key=lambda professor: professor[3], reverse=False
+                )
+                end_process = time()
+                print(
+                    f"Time taken to display professor is {end_process - start_process} Seconds"
+                )
+                return reports
+            else:
+                "No Professor record to display"
         except Exception as e:
-            print(f"Error displaying professor details {str(e)}")
+            print(f"Error fetching professor details {str(e)}")
 
 
 ##    ====================== Course Class =======================
@@ -519,7 +555,7 @@ class Course:
         except Exception as e:
             print(f"Error reading the course info {str(e)}")
 
-    def display_courses(self, course_id):
+    def display_courses(self, course_id=None):
         """Display  record of all/selected Courses"""
         start_process = time()
         try:
@@ -558,31 +594,47 @@ class Course:
         try:
             self.courses = [course for course in self.courses if course[0] != course_id]
             self.save_course_data()
+            return f"Course {course_id} deleted successfully!"
         except Exception as e:
             print(f"Error deleting course {str(e)}")
 
 
 # Helper function to take optional input
 def get_optional_input(prompt, default_value=None):
-    user_input = input(f"{prompt} (default: {default_value}): ")
-    return user_input if user_input else default_value
+    try:
+        user_input = input(f"{prompt} (default: {default_value}): ")
+        return user_input if user_input else default_value
+    except Exception as e:
+            print(f"Error getting optional input {str(e)}")
 
 
 # Helper function for display records
-def print_records(data, headers):
+def print_records(data, headers=None):
     try:
-        if isinstance(data, list):
-            # Print headers
-            header_row = " | ".join(f"{header: <10}" for header in headers)
-            print(header_row)
-            print("-" * len(header_row))  # Separator line
-            # Print each record
+        if any(isinstance(i, list) for i in data):
+            # Calculate the maximum width of each column
+            column_widths = []
+            if headers:
+                column_widths = [len(header) for header in headers]
+            
+            # Find the longest item in each column (headers and rows)
             for row in data:
-                print(" | ".join(f"{str(item): <10}" for item in row))
+                for i, item in enumerate(row):
+                    column_widths[i] = max(column_widths[i], len(str(item)))
+            
+            # Print headers with dynamic column width
+            header_row = " | ".join(f"{header: <{column_widths[i]}}" for i, header in enumerate(headers))
+            print(header_row)
+            print("-" * (sum(column_widths) + (len(column_widths) - 1) * 3))  # Separator line
+            
+            # Print each record with dynamic column width
+            for row in data:
+                print(" | ".join(f"{str(item): <{column_widths[i]}}" for i, item in enumerate(row)))
         else:
             print(data)
     except Exception as e:
         print(f"Exception in printing record {str(e)}")
+
 
 def check_my_grade():
     student_manager = Student()
@@ -645,45 +697,125 @@ def check_my_grade():
                             records = professor_manager.professor_details(email_address)
                             print_records(records, ["Email Address","Name","Rank","Course_Id"])
                         elif choice == "2":
-                            print("".center(columns))
+                            print("Add new professor".center(columns))
+                            email_address = input("Enter email address for Professor: ")
+                            name = input("Enter Professor name: ")
+                            rank = input("Enter Professor rank: ")
+                            course_id = input("Enter course id: ")
+                            professor_manager=Professor()
+                            print_records(professor_manager.add_new_professor(email_address,name,rank,course_id))
                         elif choice == "3":
-                            print("".center(columns))
+                            print("Modify professor details".center(columns))
+                            email_address = input("Enter professor email address: ")
+                            new_name = get_optional_input("Enter professor name, press enter to skip: ")
+                            new_rank = get_optional_input("Enter professor rank, press enter to skip: ")
+                            new_course_id = get_optional_input("Enter course id, press enter to skip: ")
+                            professor_manager=Professor()
+                            print_records(professor_manager.modify_professor_details(email_address,new_name,new_rank,new_course_id))
                         elif choice == "4":
-                             print("".center(columns))
+                             print("Course details of Professor".center(columns))
+                             email_address = input("Enter Professor email address: ")
+                             professor_manager=Professor()
+                             records = professor_manager.professor_course_details(email_address)
+                             print_records(records, ["Email Address","Name","Rank","Course_Id"])
                         elif choice == "5":
-                             print("".center(columns))
+                             print("Delete Professor details".center(columns))
+                             email_address = input("Enter Professor email address: ")
+                             professor_manager=Professor()
+                             print_records(professor_manager.delete_professor(email_address))
                         elif choice == "6":
-                             print("".center(columns))
+                             print("Add student".center(columns))
+                             email_address = input("Enter student's email address: ")
+                             first_name = input("Enter student's first name: ")
+                             last_name = input("Enter student's last name: ")
+                             course_id = input("Enter student's course_id: ")
+                             marks=get_optional_input("Enter student's marks (optional), press enter to skip it:  ")
+                             student_manager=Student()
+                             print_records(student_manager.add_new_student(email_address,first_name,last_name,course_id,marks))
                         elif choice == "7":
-                             print("".center(columns))
+                             print("Update student record".center(columns))
+                             student_manager=Student()
+                             email_address = input("Enter student's email address: ")
+                             course_id = input("Enter student's course_id: ")
+                             new_marks=input("Enter new marks: ")
+                             print_records(student_manager.update_student_record(email_address,course_id,new_marks))
                         elif choice == "8":
-                             print("".center(columns))
+                             print("Display Student records".center(columns))
+                             student_manager=Student()
+                             email_address = get_optional_input("Enter student's email address, press enter to list all students: ")
+                             records=student_manager.display_record(email_address)
+                             print_records(records, ["Email Address","First_Name","Last_Name","Course_Id","Grade", "Marks"])
                         elif choice == "9":
-                             print("".center(columns))
+                             print("Check Student grade".center(columns))
+                             student_manager=Student()
+                             email_address = input("Enter student's email address: ")
+                             course_id = get_optional_input("Enter student's course_id, press enter to list for all courses: ")
+                             records = student_manager.check_my_grades(email_address, course_id)
+                             print_records(records, ["Email Address","First_Name","Last_Name","Course_Id","Grade", "Marks"])
                         elif choice == "10":
-                             print("".center(columns))
+                             print("Check student marks".center(columns))
+                             student_manager=Student()
+                             email_address = input("Enter student's email address: ")
+                             course_id = get_optional_input("Enter student's course_id, press enter to list for all courses: ")
+                             records = student_manager.check_my_marks(email_address, course_id)
+                             print_records(records, ["Email Address","First_Name","Last_Name","Course_Id","Grade", "Marks"])
                         elif choice == "11":
-                             print("".center(columns))
+                             print("Sort student record by field".center(columns))
+                             student_manager=Student()
+                             field=input("Enter the field name you want to sort:\n 0 for email 1 for Firstname, 2 for Lastname, 3 for Course_id, 4 for Grades, 5 for marks")
+                             reverse = input("Enter if you want the reverse sorting, 1 for Yes, 2 for No")
+                             if reverse == "1":
+                                records = student_manager.sort_students(int(field.strip()),True)
+                             else:
+                                 records = student_manager.sort_students(int(field.strip()))
+                             print_records(records, ["Email Address","First_Name","Last_Name","Course_Id","Grade", "Marks"])
                         elif choice == "12":
-                             print("".center(columns))
+                             print("Delete Student".center(columns))
+                             student_manager=Student()
+                             email_address = input("Enter student's email address: ")
+                             print_records(student_manager.delete_student(email_address))
                         elif choice == "13":
-                             print("".center(columns))
+                             print("Display Course".center(columns))
+                             course_manager=Course()
+                             email_address = get_optional_input("Enter Course ID to display, press enter to skip it: ")
+                             print_records(course_manager.display_courses(email_address), ["course_id", "course_name", "description"])
                         elif choice == "14":
-                             print("".center(columns))
+                             print("Add new Course".center(columns))
+                             course_manager=Course()
+                             course_id = input("Enter course id: ")
+                             course_name = input("Enter course name: ")
+                             description = input("Enter course description: ")
+                             print_records(course_manager.add_new_course(course_id,course_name,description))
                         elif choice == "15":
-                             print("".center(columns))
+                             print("Delete Course".center(columns))
+                             course_manager=Course()
+                             course_id = input("Enter course id you want to delete: ")
+                             print_records(course_manager.delete_course(course_id))
                         elif choice == "16":
-                             print("".center(columns))
+                             print("Display grade report".center(columns))
+                             grade_manager=Grades()
+                             email_address = input("Enter email address of the student to get grade report, press enter to list all students report: ")
+                             records = grade_manager.display_grade_report(email_address)
+                             print_records(records, ["Email Address","First_Name","Last_Name","Course_Id","Grade", "Marks"])
                         elif choice == "17":
-                             print("".center(columns))
+                             print("Add/Modify Grade for a student".center(columns))
+                             grade_manager=Grades()
+                             email_address = input("Enter email address of the student to modify report: ")
+                             course_id = input("Enter course id: ")
+                             marks = input("Enter marks : ")
+                             print_records(grade_manager.modify_grade(email_address,course_id,marks))
                         elif choice == "18":
-                             print("".center(columns))
+                             print("Delete grade for a student".center(columns))
+                             grade_manager=Grades()
+                             email_address = input("Enter email address of the student to delete grade: ")
+                             course_id = input("Enter course id: ")
+                             print_records(grade_manager.delete_grade(email_address,course_id))
                         elif choice == "19":
                              print("Logging out".center(columns))
                              break
                         else:
                             print("Enter Valid choice from the given options")
-                            
+
 
                 elif role == "student":
                     while True:
@@ -694,15 +826,34 @@ def check_my_grade():
                         print("1. Display my records")
                         print("2. Check my Grades")
                         print("3. Check my Marks")
-                        print("4. Logout")
+                        print("4. Add Student record")
+                        print("5. Logout")
                         choice = input("Enter your Choice: ")
                         if choice == "1":
                             print("Details for Student".center(columns))
+                            student_manager=Student()
+                            records = student_manager.display_record(email_address)
+                            print_records(records, ["Email Address","First_Name","Last_Name","Course_Id","Grade", "Marks"])
                         elif choice == "2":
-                            print("".center(columns))
+                            print("Check my Grades".center(columns))
+                            student_manager=Student()
+                            course_id = get_optional_input("Enter course id, press enter to list for all courses: ")
+                            records = student_manager.check_my_grades(email_address, course_id)
+                            print_records(records, ["Email Address","First_Name","Last_Name","Course_Id","Grade", "Marks"])
                         elif choice == "3":
-                            print("".center(columns))
+                            print("Check my Marks".center(columns))
+                            student_manager=Student()
+                            course_id = get_optional_input("Enter course id, press enter to list for all courses: ")
+                            records = student_manager.check_my_marks(email_address, course_id)
+                            print_records(records, ["Email Address","First_Name","Last_Name","Course_Id","Grade", "Marks"])
                         elif choice == "4":
+                             student_manager=Student()
+                             print("Add student".center(columns))
+                             first_name = input("Enter student's first name: ")
+                             last_name = input("Enter student's last name: ")
+                             course_id = input("Enter student's course_id: ")
+                             print_records(student_manager.add_new_student(email_address,first_name,last_name,course_id))
+                        elif choice == "5":
                              print("Logging out".center(columns))
                              break
                         else:
